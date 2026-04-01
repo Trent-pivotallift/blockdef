@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── NextAuth adapter tables ────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("user")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts  Account[]
+  sessions  Session[]
+  attempts  UserAttempt[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ── App tables ────────────────────────────────────────────────────────────
+
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  firstName String?
+  role      String?  // "mbse_engineer" | "trainer" | "student" | "other"
+  company   String?
+  createdAt DateTime @default(now())
+
+  @@map("waitlist_entries")
+}
+
+model Exercise {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String   @db.Text
+  domain      String
+  difficulty  String   // "beginner" | "intermediate" | "advanced"
+  stageCount  Int      @default(4)
+  isFree      Boolean  @default(false) // true = Exercises 1-2 (no gate)
+  isPublished Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  attempts UserAttempt[]
+
+  @@map("exercises")
+}
+
+model UserAttempt {
+  id           String    @id @default(cuid())
+  userId       String
+  exerciseId   String
+  currentStage Int       @default(0)
+  totalScore   Int       @default(0)
+  maxScore     Int       @default(40) // 4 stages × 10 points
+  completedAt  DateTime?
+  startedAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise    Exercise           @relation(fields: [exerciseId], references: [id])
+  submissions DiagramSubmission[]
+
+  @@unique([userId, exerciseId])
+  @@map("user_attempts")
+}
+
+model DiagramSubmission {
+  id          String   @id @default(cuid())
+  attemptId   String
+  stageIndex  Int
+  score       Int
+  maxScore    Int      @default(10)
+  passed      Boolean
+  diagramJson Json     // { nodes: DiagramNode[], connections: Connection[] }
+  feedback    Json     // { message: string, type: "error"|"warning"|"info" }[]
+  submittedAt DateTime @default(now())
+
+  attempt UserAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@map("diagram_submissions")
+}
+
+model ApprovedDiagram {
+  id            String   @id @default(cuid())
+  exerciseSlug  String
+  stageIndex    Int
+  title         String
+  diagramJson   Json     // { nodes, connections }
+  submissionId  String?  // optional link back to original submission
+  createdAt     DateTime @default(now())
+
+  @@unique([exerciseSlug, stageIndex])
+  @@map("approved_diagrams")
+}

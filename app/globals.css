@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --canvas-bg: #1e1e1e;
+    --canvas-panel: #252526;
+    --canvas-border: #3e3e42;
+  }
+
+  body {
+    @apply text-zinc-950 antialiased;
+    background-color: #F5F4F0;
+  }
+
+  /* Technical paper dot-grid overlay for landing sections */
+  .paper-grid {
+    background-image: radial-gradient(circle, #C8C5BC 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #3e3e42 transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #3e3e42;
+    border-radius: 3px;
+  }
+}
