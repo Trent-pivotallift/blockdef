@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { exercises } from '@/lib/exercises/definitions'
 
 export default async function AdminPage() {
   const session = await getServerSession(authOptions)
@@ -99,13 +100,23 @@ export default async function AdminPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {approvedDiagrams.map((d) => (
+              {approvedDiagrams.map((d) => {
+                const stage = exercises.find(e => e.slug === d.exerciseSlug)?.stages[d.stageIndex]
+                const isKerML = stage?.inputMode === 'kerml'
+                return (
                 <Link
                   key={d.id}
                   href={`/admin/exercises/${d.exerciseSlug}/${d.stageIndex}`}
                   className="block border-2 border-zinc-200 rounded-xl p-4 hover:border-[#1B1BFF] hover:shadow-sm transition-all group"
                 >
-                  <div className="font-bold text-zinc-950 text-sm mb-1 group-hover:text-[#1B1BFF] transition-colors">{d.title}</div>
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="font-bold text-zinc-950 text-sm group-hover:text-[#1B1BFF] transition-colors">{d.title}</div>
+                    {isKerML && (
+                      <span className="flex-shrink-0 rounded-full bg-violet-100 border border-violet-300 px-2 py-0.5 text-[10px] font-bold text-violet-700 uppercase tracking-wide">
+                        KerML
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-xs font-mono text-zinc-500">{d.exerciseSlug}</span>
                     <span className="text-zinc-300">·</span>
@@ -120,7 +131,8 @@ export default async function AdminPage() {
                     </span>
                   </div>
                 </Link>
-              ))}
+                )
+              })}
             </div>
           )}
         </section>

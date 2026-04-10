@@ -10,11 +10,18 @@ function toId(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'element'
 }
 
-export default function KerMLBuilder() {
+interface KerMLBuilderProps {
+  /** Block names derived from the stage's requiredElements — shown as quick-add chips. */
+  suggestedNames?: string[]
+}
+
+export default function KerMLBuilder({ suggestedNames = [] }: KerMLBuilderProps) {
   const { state, dispatch } = useCanvas()
   const [newBlockName, setNewBlockName] = useState('')
   const [expandedBlockId, setExpandedBlockId] = useState<string | null>(null)
   const [partName, setPartName] = useState('')
+  const [compParent, setCompParent] = useState('')
+  const [compChild, setCompChild] = useState('')
 
   const blocks = state.nodes.filter((n) => n.type === 'block')
 
@@ -70,6 +77,43 @@ export default function KerMLBuilder() {
 
   const compositionCount = state.connections.filter((c) => c.type === 'composition').length
 
+  /** Add a block by name if it doesn't already exist on the canvas. */
+  function quickAddBlock(name: string) {
+    const already = blocks.find((b) => b.name.toLowerCase() === name.toLowerCase())
+    if (!already) {
+      const { x, y } = getAutoPlacePosition(blocks.length)
+      dispatch({ type: 'ADD_NODE', node: { id: uuidv4(), type: 'block', name, x, y } })
+    }
+  }
+
+  /** Add a composition connection from parent to child by name. Creates nodes as needed. */
+  function quickAddComposition(parentName: string, childName: string) {
+    if (!parentName || !childName || parentName === childName) return
+    const getOrCreate = (name: string) => {
+      const existing = blocks.find((b) => b.name.toLowerCase() === name.toLowerCase())
+      if (existing) return existing.id
+      const id = uuidv4()
+      const { x, y } = getAutoPlacePosition(blocks.length)
+      dispatch({ type: 'ADD_NODE', node: { id, type: 'block', name, x, y } })
+      return id
+    }
+    const parentId = getOrCreate(parentName)
+    const childId = getOrCreate(childName)
+    const alreadyConnected = state.connections.some(
+      (c) => c.type === 'composition' && c.sourceId === parentId && c.targetId === childId
+    )
+    if (!alreadyConnected) {
+      dispatch({ type: 'ADD_CONNECTION', sourceId: parentId, targetId: childId, connectionType: 'composition' })
+    }
+    setCompParent('')
+    setCompChild('')
+  }
+
+  // Names already on the canvas
+  const onCanvasNames = new Set(blocks.map((b) => b.name.toLowerCase()))
+  // Suggested names not yet on canvas
+  const pendingSuggestions = suggestedNames.filter((n) => !onCanvasNames.has(n.toLowerCase()))
+
   return (
     <div className="flex flex-col h-full bg-white overflow-hidden">
       {/* Header */}
@@ -79,6 +123,61 @@ export default function KerMLBuilder() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+
+        {/* ── Quick-add block chips (suggested names not yet on canvas) ── */}
+        {suggestedNames.length > 0 && (
+          <div className="rounded border border-violet-200 bg-violet-50 p-2 space-y-1.5">
+            <div className="text-[9px] font-bold uppercase tracking-widest text-violet-600">Quick Add Block</div>
+            <div className="flex flex-wrap gap-1">
+              {pendingSuggestions.length === 0 ? (
+                <span className="text-[9px] text-violet-400 italic">All required blocks added ✓</span>
+              ) : (
+                pendingSuggestions.map((name) => (
+                  <button
+                    key={name}
+                    onClick={() => quickAddBlock(name)}
+                    className="rounded border border-violet-300 bg-white px-1.5 py-0.5 text-[9px] font-mono text-violet-700 hover:bg-violet-100 hover:border-violet-500 transition-colors"
+                  >
+                    + {name}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Composition dropdown (only shown when ≥2 blocks exist) ── */}
+        {suggestedNames.length > 0 && blocks.length >= 2 && (
+          <div className="rounded border border-blue-200 bg-blue-50 p-2 space-y-1.5">
+            <div className="text-[9px] font-bold uppercase tracking-widest text-blue-600">Add Composition</div>
+            <div className="flex flex-col gap-1">
+              <select
+                value={compParent}
+                onChange={(e) => setCompParent(e.target.value)}
+                className="rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-[10px] text-zinc-900 focus:border-[#1B1BFF] focus:outline-none"
+              >
+                <option value="">parent block…</option>
+                {blocks.map((b) => <option key={b.id} value={b.name}>{b.name}</option>)}
+              </select>
+              <select
+                value={compChild}
+                onChange={(e) => setCompChild(e.target.value)}
+                className="rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-[10px] text-zinc-900 focus:border-[#1B1BFF] focus:outline-none"
+              >
+                <option value="">child block…</option>
+                {blocks.filter((b) => b.name !== compParent).map((b) => <option key={b.id} value={b.name}>{b.name}</option>)}
+              </select>
+              <button
+                onClick={() => quickAddComposition(compParent, compChild)}
+                disabled={!compParent || !compChild}
+                className="rounded bg-[#1B1BFF] px-2 py-0.5 text-[10px] text-white hover:bg-[#1010CC] disabled:opacity-40 transition-colors"
+              >
+                ♦ Add Composition
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Existing blocks */}
         {blocks.map((block) => {
           const parts = getComposedParts(block.id)

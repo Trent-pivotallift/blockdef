@@ -285,6 +285,7 @@ export const exercises: ExerciseDefinition[] = [
         index: 1,
         title: 'Pump Hardware Blocks',
         diagramType: 'bdd',
+        inputMode: 'kerml',
         taskPrompt: 'Build a BDD for the Infusion Pump System:',
         requiredElements: [
           '⬛ Block: Infusion Pump',

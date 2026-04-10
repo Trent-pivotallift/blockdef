@@ -34,6 +34,11 @@ interface WorkspaceInnerProps {
 function WorkspaceInner({ exerciseSlug, stage, totalScore, stageIndex, totalStages, onStagePass }: WorkspaceInnerProps) {
   const { state, dispatch } = useCanvas()
   const [gradeResult, setGradeResult] = useState<GradeResult | null>(null)
+
+  // Extract block names from required elements like "⬛ Block: Pump Motor"
+  const suggestedBlockNames = stage.requiredElements
+    .filter((el) => el.includes('Block:'))
+    .map((el) => el.replace(/.*Block:\s*/, '').trim())
   const [uiActionsText, setUiActionsText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showTree, setShowTree] = useState(false)
@@ -135,7 +140,7 @@ function WorkspaceInner({ exerciseSlug, stage, totalScore, stageIndex, totalStag
         {/* Left panel: KerML Builder (kerml mode) or Containment Tree (graphical mode) */}
         {stage.inputMode === 'kerml' ? (
           <div className="hidden sm:flex w-64 border-r-2 border-zinc-200 flex-col flex-shrink-0">
-            <KerMLBuilder />
+            <KerMLBuilder suggestedNames={suggestedBlockNames} />
           </div>
         ) : (
           <div className="hidden sm:flex w-44 border-r-2 border-zinc-200 flex-col flex-shrink-0">
@@ -188,7 +193,7 @@ function WorkspaceInner({ exerciseSlug, stage, totalScore, stageIndex, totalStag
             </span>
             <button onClick={() => setShowTree(false)} className="text-zinc-400 hover:text-zinc-700">✕</button>
           </div>
-          {stage.inputMode === 'kerml' ? <KerMLBuilder /> : <ContainmentTree />}
+          {stage.inputMode === 'kerml' ? <KerMLBuilder suggestedNames={suggestedBlockNames} /> : <ContainmentTree />}
         </div>
       )}
 

@@ -69,6 +69,10 @@ function AdminWorkspaceInner({
             ← Admin
           </a>
           <span className="text-zinc-300">|</span>
+          <a href={`/exercises/${exerciseSlug}`} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 hover:text-[#1B1BFF] transition-colors">
+            View Exercise ↗
+          </a>
+          <span className="text-zinc-300">|</span>
           <span className="text-sm font-bold text-zinc-950">{diagramTitle}</span>
           <span className="rounded-full border-2 border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-[10px] text-zinc-500 font-bold uppercase tracking-wide">
             {diagramType.toUpperCase()} · Stage {stageIndex}
